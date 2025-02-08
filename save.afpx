@@ -1,0 +1,1901 @@
+AFP_____LUGMarket.app/default.dat 356 {
+    version = 1,
+    users = {
+        rootmaster = {
+            0,
+            false,
+            true,
+            true,
+            false
+        },
+        LuaGame = {
+            0,
+            false,
+            true,
+            true,
+            false
+        }
+    },
+    items = {
+        categories = {
+        }
+    }
+}LUGMarket.app/eula.txt 1230 |0x1e3de8|---=== Пользовательское соглашение ===---|0xffffff|
+Добро пожаловать в |0x01b799|LUG Market|0xffffff|!
+
+Баланс магазина - это вымышленная валюта (|0x1cba0b|Доллары $|0xffffff|)
+Вы можете пополнить баланс игровыми ресурсами или серверными Эмеральдами
+
+Вы можете быть заблокированы в нашем магазине, в случае если!
+1. Попытаетесь нарушить работу магазина в корыстных целях т.е, умышленно
+2. Найдёте баг, и будете использовать его для обогащения
+3. Личное оскорбление владельцев |0x01b799|LUG Market|0xffffff| или варпа
+
+В случае блокировки аккаунта в магазине, остаток баланса будет возвращён,
+Углём и/или воском по формуле (Ваш баланс/цена = (Угля или воска))
+
+|0xdbd904|Приобритённые товары в магазине обратно не принимаются.LUGMarket.app/exit.lua 88 local graphic = require("graphic")
+graphic.cursorColor = nil
+graphic.selectColor = nilLUGMarket.app/icon.t2p 162          u▄u▄u▄u▄u▄u▄U▄ w▄w▄w▄w▄w▄w▄U▄ w▄w▄w▄w▄w▄w▄U▄ W▄W▄W▄W▄W▄W▄U▄LUGMarket.app/logo.t2p 6475 P                                                                                                                                                                           ╥               ╥           ╥       ╔ ═ ═ ╗             ╥           ╥         ╔ ═ ╗         ╔ ═ ═ ═ ═ ╗     ╥       ╔ ═     ╔ ═ ═ ═ ═     ╞ ═ ═ ═ ╦ ═ ═ ═ ╡     ║               ║           ║     ╔ ╝     ╚ ╗           ╠ ╗       ╔ ╣       ╔ ╝   ╚ ╗       ║         ║     ║   ╔ ═ ╝       ║                     ║             ║               ║           ║     ║         ╨           ║ ╚ ╗   ╔ ╝ ║       ║       ║       ║         ║     ╠ ═ ╝           ║                     ║             ║               ║           ║     ║     ╞ ═ ╗           ║   ╚ ═ ╝   ║     ╔ ╩ ═ ═ ═ ╩ ╗     ╠ ═ ╦ ═ ═ ╝     ╠ ═ ╗           ╠ ═ ═ ═ ═             ║             ║               ╚ ╗       ╔ ╝     ╚ ╗     ╔ ╝           ║           ║     ║           ║     ║   ╚ ═ ╗       ║   ╚ ═ ╗       ║                     ║             ╚ ═ ═ ═ ═ ═       ╚ ═ ═ ═ ╝         ╚ ═ ═ ╝             ╨           ╨     ╨           ╨     ╨       ╚ ═     ╨       ╚ ═     ╚ ═ ═ ═ ═             ╨                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        Для Начала Работы, Встаньте на   P I M                                                                                                                                                                                                                                                                                                                                                                                                                                                D $▄$▄$▄$▄$▄$▄$▄$▄$▄$▄$▄$▄D                                                                                                                                     D " "           D                                                                                                                                     D " "           D                                                                                                                                     D " "           D                                                                                                                                     D " " " " " " " " " " " " D                                                                                                                                     D " " " " " " " " " " " " D                                                                                                                                     D B▄B▄B▄B▄B▄B▄B▄B▄B▄B▄B▄B▄D                                                                                                                                                                                                                                       По Вопросам Пишите Владельцу: LuaGame (игра) | thekilohertz_40460 (discord)                                                                                                                                                                                  Автор Програмного Обеспечения: rootmaster (игра) | smlogic (discord)                                                                                                                                                                            LUGMarket.app/main.lua 56578 local gui_container = require("gui_container")
+local serialization = require("serialization")
+local component = require("component")
+local graphic = require("graphic")
+local system = require("system")
+local paths = require("paths")
+local event = require("event")
+local uix = require("uix")
+local registry = require("registry")
+local unicode = require("unicode")
+local cache = require("cache")
+local format = require("format")
+local gui = require("gui")
+local computer = require("computer")
+local sound = require("sound")
+local thread = require("thread")
+local clipboard = require("clipboard")
+local parser = require("parser")
+local fs = require("filesystem")
+
+--damage=0.0
+--text="????????? ?????"
+--name="minecraft:hardened_clay"
+--nbt_check=true
+--price
+--sellPrice
+--need
+
+local appFolder = paths.path(system.getSelfScriptPath())
+local logoPath = paths.concat(appFolder, "logo.t2p")
+
+local defaultAutocraftCount = 32
+
+local config = _G.lugmarketConfig or error("please run the shell.lua")
+local port = _G.lugmarketPort
+
+local function configSave()
+    config.data.version = config.data.version + 1
+    config.save()
+    _G.lugmarketSend()
+    _G.syncCheck()
+end
+
+local pim = component.pim or error("connect pim!")
+local me = component.me_interface or component.me_controller or error("connect me_interface or me_controller via adapter!")
+local modem = component.modem
+local openperipheral_selector = component.openperipheral_selector
+
+local screen = ...
+local rx, ry = graphic.getResolution(screen)
+local window = graphic.createWindow(screen, 1, 1, rx, ry, true)
+
+local raw_colors = assert(serialization.load(paths.concat(appFolder, "palette.plt")))
+local colors = {
+    white = raw_colors[1],
+    gray = {table.unpack(raw_colors, 2, 6)},
+    black = raw_colors[7],
+
+    red = raw_colors[8],
+    lime = raw_colors[9],
+    blue = raw_colors[10],
+    yellow = raw_colors[11],
+    lightBlue = raw_colors[12],
+    purple = raw_colors[13],
+    cyan = raw_colors[14],
+    orange = raw_colors[15],
+    gray4a = raw_colors[16],
+}
+graphic.cursorColor = colors.purple
+graphic.selectColor = colors.cyan
+
+--для того чтобы все стандартные UI использовали правильную палитру
+for key, value in pairs(colors) do
+    gui_container.colors[key] = value
+end
+gui_container.colors.gray = colors.gray[3]
+gui_container.colors.lightGray = colors.gray[1]
+
+local numbersWhiteList = {}
+local numbersWhiteListWithDot = {["."] = true}
+for i = 0, 9 do
+    local chr = tostring(i)
+    numbersWhiteList[chr] = true
+    numbersWhiteListWithDot[chr] = true
+end
+
+local function doButton(butt)
+    butt.back2 = nil
+    butt.fore2 = nil
+    butt.autoRelease = nil
+    return butt
+end
+
+--------------------------------------------------
+
+local currentUser, currentNick, lastUser
+
+local categoryPos   = 3
+local namePos       = 3 + 16
+local pricePos   = 5 + 16 + 24
+local sellPricePos  = 5 + 16 + 24
+local invPos  = 3 + 16 + 24 + 16 + 4
+local storagePos  = 0 + 16 + 24 + 16 + 8
+
+local pricePos2   = 3 + 16 + 24
+local sellPricePos2  = 2 + 16 + 24 + 8
+
+local function escape_pattern(text)
+    return text:gsub("([^%w])", "%%%1")
+end
+
+local function unicodeFind(s, pattern, init, plain)
+    if init then
+        if init < 0 then
+            init = -#unicode.sub(s, init)
+        elseif init > 0 then
+            init = #unicode.sub(s, 1, init - 1) + 1
+        end
+    end
+    
+    local a, b = s:find(pattern, init, plain)
+    
+    if a then
+        local ap, bp = s:sub(1, a - 1), s:sub(a,b)
+        a = unicode.len(ap) + 1
+        b = a + unicode.len(bp) - 1
+
+        return a, b
+    else
+        return a
+    end
+end
+
+local function rusInput(screen, action, cx, cy, str, hidden, backgroundColor, default, disableStartSound, whitelist)
+    local colors = gui_container.colors
+    local gpu = graphic.findGpu(screen)
+
+    if not cx or not cy then
+        cx, cy = gpu.getResolution()
+        cx = cx / 2
+        cy = cy / 2
+        cx = cx - 24
+        cy = cy - 4
+        cx = math.floor(cx) + 1
+        cy = math.floor(cy) + 1
+    end
+
+    local offset = unicode.len(action) - 1
+
+    local window = graphic.createWindow(screen, cx, cy, 48, 8, true)
+
+    --window:fill(2, 2, window.sizeX, window.sizeY, colors.gray, 0, " ")
+    local noShadow = gui.shadow(gpu, window.x, window.y, window.sizeX, window.sizeY)
+    window:clear(backgroundColor or colors.lightGray)
+
+    local pos = math.round((window.sizeX / 2) - (unicode.wlen(str) / 2)) + 1
+    window:fill(1, 1, window.sizeX, 1, colors.gray, 0, " ")
+    window:set(pos, 1, colors.gray, colors.white, str)
+
+    window:set(48 - 3 - offset, 7, colors.lightBlue, colors.white, " " .. action .. " ")
+    window:set(2, 7, colors.red, colors.white, " Отмена ")
+
+    local reader = window:read(2, 3, window.sizeX - 2, colors.gray, colors.white, nil, hidden, default)
+    reader.setMaxStringLen(32)
+    if whitelist then
+        reader.setWhitelist(whitelist)
+    end
+
+    graphic.forceUpdate(screen)
+    if registry.soundEnable and not disableStartSound then
+        computer.beep(2000)
+        computer.beep(1500)
+    end
+
+    local function drawOk()
+        window:set(48 - 3 - offset, 7, colors.blue, colors.white, " " .. action .. " ")
+        graphic.forceUpdate(screen)
+        event.sleep(0.1)
+    end
+
+    local function drawCancel()
+        window:set(2, 7, colors.orange, colors.white, " Отмена ")
+        graphic.forceUpdate(screen)
+        event.sleep(0.1)
+    end
+
+    while not canStopWhile() do
+        local eventData = {event.pull(0.1)}
+        local windowEventData = window:uploadEvent(eventData)
+        local out = reader.uploadEvent(eventData)
+        if out then
+            if out == true then
+                drawCancel()
+                noShadow()
+                return false
+            end
+            drawOk()
+            noShadow()
+            return out
+        end
+        if windowEventData[1] == "touch" and windowEventData[5] == 0 then
+            if windowEventData[4] == 7 and windowEventData[3] > (48 - 3 - offset - 1) and windowEventData[3] <= ((48 - 5) + 4) then
+                drawOk()
+                noShadow()
+                return reader.getBuffer()
+            elseif windowEventData[4] == 7 and windowEventData[3] >= 2 and windowEventData[3] <= (2 + 7) then
+                drawCancel()
+                noShadow()
+                return false
+            end
+        end
+    end
+    return false
+end
+
+local function nRusInput(screen, action, cx, cy, str, hidden, backgroundColor, default, disableStartSound, item, sellMode, whitelist) --обеспечивает работу item selector
+    local colors = gui_container.colors
+    local gpu = graphic.findGpu(screen)
+
+    if not cx or not cy then
+        cx, cy = gpu.getResolution()
+        cx = cx / 2
+        cy = cy / 2
+        cx = cx - 24
+        cy = cy - 4
+        cx = math.floor(cx) + 1
+        cy = math.floor(cy) + 1
+    end
+
+    local offset = unicode.len(action) - 1
+
+    local window = graphic.createWindow(screen, cx, cy, 48, 8, true)
+
+    --window:fill(2, 2, window.sizeX, window.sizeY, colors.gray, 0, " ")
+    local noShadow = gui.shadow(gpu, window.x, window.y, window.sizeX, window.sizeY)
+    window:clear(backgroundColor or colors.lightGray)
+
+    local pos = math.round((window.sizeX / 2) - (unicode.wlen(str) / 2)) + 1
+    window:fill(1, 1, window.sizeX, 1, colors.gray, 0, " ")
+    window:set(pos, 1, colors.gray, colors.white, str)
+
+    window:set(48 - 3 - offset, 7, colors.lightBlue, colors.white, " " .. action .. " ")
+    window:set(2, 7, colors.red, colors.white, " Отмена ")
+
+    local reader = window:read(2, 3, window.sizeX - 2, colors.gray, colors.white, nil, hidden, default)
+    reader.setMaxStringLen(32)
+    if whitelist then
+        reader.setWhitelist(whitelist)
+    end
+
+    graphic.forceUpdate(screen)
+    if registry.soundEnable and not disableStartSound then
+        computer.beep(2000)
+        computer.beep(1500)
+    end
+
+    local function stopSelect()
+        if openperipheral_selector and item then
+            pcall(openperipheral_selector.setSlot, 1)
+        end
+    end
+
+    local function drawOk()
+        stopSelect()
+
+        window:set(48 - 3 - offset, 7, colors.blue, colors.white, " " .. action .. " ")
+        graphic.forceUpdate(screen)
+        event.sleep(0.1)
+    end
+
+    local function drawCancel()
+        stopSelect()
+
+        window:set(2, 7, colors.orange, colors.white, " Отмена ")
+        graphic.forceUpdate(screen)
+        event.sleep(0.1)
+    end
+
+    local function updateInfo()
+        local value = sellMode and item[6] or item[5]
+        local mulValue = "unknown"
+        local inputValue = tonumber(reader.getBuffer())
+        if inputValue then
+            mulValue = tostring((value or 0) * inputValue)
+        end
+        local canValue = sellMode and getUserItemCount(item) or math.min(getStorageItemCount(item), math.floor(currentUser[1] / (value or 1)))
+
+        window:fill(2, 4, 44, 3, colors.lightGray, 0, " ")
+        if sellMode then
+            mulValue = unicode.sub(mulValue, 1, 12)
+            window:set(2, 4, colors.lightGray, colors.black, "Получите за штуку               : " .. value or "unknown")
+            window:set(2, 5, colors.lightGray, colors.black, "Получите за введенное количество: " .. mulValue)
+            window:set(2, 6, colors.lightGray, colors.black, "Можете Продать                  : " .. canValue)
+        else
+            mulValue = unicode.sub(mulValue, 1, 24)
+            window:set(2, 4, colors.lightGray, colors.black, "Цена за штуку: " .. (value or "unknown"))
+            window:set(2, 5, colors.lightGray, colors.black, "Цена за все  : " .. mulValue)
+            window:set(2, 6, colors.lightGray, colors.black, "Можете купить: " .. canValue)
+        end
+    end
+
+    if openperipheral_selector and item then
+        if not item.dmg then
+            pcall(openperipheral_selector.setSlot, 1, {id = item[3], dmg = item[1]})
+            if sellMode ~= nil then
+                updateInfo()
+            end
+        else
+            pcall(openperipheral_selector.setSlot, 1, item)
+        end
+    end
+
+    while not canStopWhile() do
+        local eventData = {event.pull(0.1)}
+        local windowEventData = window:uploadEvent(eventData)
+        local out = reader.uploadEvent(eventData)
+
+        if not item.dmg and sellMode ~= nil then
+            updateInfo()
+        end
+
+        if out then
+            if out == true then
+                drawCancel()
+                noShadow()
+                return false
+            end
+            drawOk()
+            noShadow()
+            return out
+        end
+        if windowEventData[1] == "touch" and windowEventData[5] == 0 then
+            if windowEventData[4] == 7 and windowEventData[3] > (48 - 3 - offset - 1) and windowEventData[3] <= ((48 - 5) + 4) then
+                drawOk()
+                noShadow()
+                return reader.getBuffer()
+            elseif windowEventData[4] == 7 and windowEventData[3] >= 2 and windowEventData[3] <= (2 + 7) then
+                drawCancel()
+                noShadow()
+                return false
+            end
+        end
+    end
+    
+    stopSelect()
+
+    return false
+end
+
+local function smallWindow(screen, cx, cy, str, backgroundColor, icon)
+    local sx = 48
+    local sy = 8
+
+    local colors = gui_container.colors
+    --◢▲◣▲▴▴
+    local gpu = graphic.findGpu(screen)
+
+    if not cx or not cy then
+        cx, cy = gpu.getResolution()
+        cx = cx / 2
+        cy = cy / 2
+        cx = cx - 24
+        cy = cy - 4
+        cx = math.floor(cx) + 1
+        cy = math.floor(cy) + 1
+    end
+
+    local window = graphic.createWindow(screen, cx, cy, 48, 8, true)
+
+    local color = backgroundColor or colors.lightGray
+
+    --window:fill(2, 2, window.sizeX, window.sizeY, colors.gray, 0, " ")
+    local noShadow = gui.shadow(gpu, window.x, window.y, window.sizeX, window.sizeY)
+    window:clear(color)
+
+    local textColor = colors.white
+    if color == textColor then
+        textColor = colors.black
+    end
+
+    for i, v in ipairs(parser.parseTraceback(str, sx - 9, sy - 3)) do
+        window:set(8, i + 1, color, textColor, v)
+    end
+
+    if icon then
+        icon(window, color)
+    end
+
+    return window, noShadow
+end
+
+local function runYesno(screen, cx, cy, str, backgroundColor)
+    local colors = gui_container.colors
+
+    local window, noShadow = smallWindow(screen, cx, cy, str, backgroundColor, function (window, color)
+        window:set(2, 2, color, colors.green, "  " .. unicode.char(0x2800+192) ..  "  ")
+        window:set(2, 3, color, colors.green, " ◢█◣ ")
+        window:set(2, 4, color, colors.green, "◢███◣")
+        window:set(4, 3, colors.green, colors.white, "?")
+    end)
+
+    window:set(48 - 4, 7, colors.lime, colors.white, " Да ")
+    window:set(2, 7, colors.red, colors.white, " Нет ")
+
+    graphic.forceUpdate(screen)
+    if registry.soundEnable then
+        computer.beep(2000)
+    end
+
+    local function drawYes()
+        window:set(48 - 4, 7, colors.green, colors.white, " Да ")
+        graphic.forceUpdate(screen)
+        event.sleep(0.1)
+    end
+
+    while not canStopWhile() do
+        local eventData = {computer.pullSignal(0.1)}
+        local windowEventData = window:uploadEvent(eventData)
+        if windowEventData[1] == "touch" and windowEventData[5] == 0 then
+            if windowEventData[4] == 7 and windowEventData[3] > (48 - 5) and windowEventData[3] <= ((48 - 5) + 4) then
+                drawYes()
+                noShadow()
+                return true
+            elseif windowEventData[4] == 7 and windowEventData[3] >= 2 and windowEventData[3] <= (2 + 4) then
+                window:set(2, 7, colors.brown, colors.white, " Нет ")
+                graphic.forceUpdate(screen)
+                event.sleep(0.1)
+                noShadow()
+                return false
+            end
+        elseif windowEventData[1] == "key_down" and windowEventData[4] == 28 then
+            drawYes()
+            noShadow()
+            return true
+        end
+    end
+end
+
+local function rusWarn(screen, cx, cy, str, backgroundColor)
+    local colors = gui_container.colors
+    local window, noShadow = smallWindow(screen, cx, cy, str, backgroundColor, function (window, color)
+        window:set(2, 2, color, colors.yellow, "  " .. unicode.char(0x2800+192) ..  "  ")
+        window:set(2, 3, color, colors.yellow, " ◢█◣ ")
+        window:set(2, 4, color, colors.yellow, "◢███◣")
+        window:set(4, 3, colors.yellow, colors.white, "!")
+    end)
+
+    window:set(48 - 8, 7, colors.lightBlue, colors.white, " Хорошо ")
+    local function drawYes()
+        window:set(48 - 8, 7, colors.blue, colors.white, " Хорошо ")
+        graphic.forceUpdate(screen)
+        event.sleep(0.1)
+    end
+
+    graphic.forceUpdate(screen)
+    if registry.soundEnable then
+        sound.warn()
+    end
+
+    while not canStopWhile() do
+        local eventData = {computer.pullSignal(0.1)}
+        local windowEventData = window:uploadEvent(eventData)
+        if windowEventData[1] == "touch" and windowEventData[5] == 0 then
+            if windowEventData[4] == 7 and windowEventData[3] >= (48 - 8) and windowEventData[3] <= ((48 - 5) + 4) then
+                drawYes()
+                break
+            end
+        elseif windowEventData[1] == "key_down" and windowEventData[4] == 28 then
+            drawYes()
+            break
+        end
+    end
+    noShadow()
+end
+
+local function splash(screen, cx, cy, str, backgroundColor)
+    smallWindow(screen, cx, cy, str, backgroundColor or colors.lightGray, function (window, color)
+        window:set(2, 1, color, colors.blue, "  " .. unicode.char(0x2800+192) ..  "  ")
+        window:set(2, 2, color, colors.blue, " ◢█◣ ")
+        window:set(2, 3, color, colors.blue, "◢███◣")
+        window:set(4, 2, colors.blue, colors.white, "P")
+    end)
+    graphic.forceUpdate(screen)
+    event.yield()
+end
+
+-------------------------------------------------- database
+
+local defaultUser = {
+    0, --balance
+    true, --publicBalance
+    true, --allowTransfers
+    false, --admin
+    false --eula
+}
+
+local function regUser(nickname)
+    if not config.data.users[nickname] then
+        config.data.users[nickname] = {}
+    end
+
+    local user = config.data.users[nickname]
+    for key, value in pairs(defaultUser) do
+        if user[key] == nil then
+            user[key] = value
+        end
+    end
+
+    return user
+end
+
+--------------------------------------------------
+
+local selectedLayout
+
+local function selectLayout(layout)
+    if selectedLayout then
+        selectedLayout:stop()
+    end
+
+    selectedLayout = layout
+    if selectedLayout.onSelect then
+        selectedLayout:onSelect()
+    end
+
+    selectedLayout:draw()
+end
+
+local function translateToUser(user, money)
+    if currentUser[1] >= money then
+        currentUser[1] = currentUser[1] - money
+        if currentUser[1] <= 0 then currentUser[1] = 0 end
+        user.user[1] = user.user[1] + money
+        configSave()
+    else
+        rusWarn(screen, nil, nil, "Недостаточно средсв чтобы совершить перевод")
+    end
+end
+
+local function numCheck(str, round)
+    local num = tonumber(str)
+    if num then
+        if round then
+            num = math.round(num)
+        end
+
+        if num > 0 then
+            return num
+        else
+            rusWarn(screen, nil, nil, "Число должно быть больше нуля")
+        end
+    else
+        rusWarn(screen, nil, nil, "Неправильный ввод")
+    end
+end
+
+local function tSelectLayout(layout)
+    event.timer(0, function ()
+        selectLayout(layout)
+    end)
+end
+
+local lastMeItems
+local function refreshLastMe()
+    --lastMeItems = me.getItemsInNetwork()
+end
+
+local function sellItems(item, count)
+    local selled = 0
+    for i = 1, pim.getInventorySize() do
+        local stack = pim.getStackInSlot(i)
+        if stack and stack.id == item[3] and stack.dmg == item[1] and (not item[4] or stack.nbt_hash == item.nbt_hash) then
+            selled = selled + math.round(pim.pushItem("DOWN", i, count - selled))
+            if selled > count then
+                break
+            end
+        end
+    end
+    currentUser[1] = currentUser[1] + (item[6] * selled)
+    configSave()
+end
+
+local function export(fingerprint, direction, amount)
+    local ok, value = pcall(me.exportItem, fingerprint, direction, amount)
+    if ok then
+        return value.size
+    end
+    return 0, value or "error"
+end
+
+local function getFingerprint(item)
+    local tbl = {}
+    for _, aitem in ipairs(me.getAvailableItems()) do
+        if aitem.fingerprint.id == item[3] and aitem.fingerprint.dmg == item[1] then
+            table.insert(tbl, aitem.fingerprint)
+        end
+    end
+    return tbl
+end
+
+local function advExport(item, direction, amount, exportCallback)
+    local exported = 0
+    while amount - exported > 0 do
+        local count, err
+        for i, fingerprint in ipairs(getFingerprint(item)) do
+            count, err = export(fingerprint, direction, amount - exported)
+            if count > 0 then
+                exported = exported + count
+                exportCallback(count)
+                break
+            end
+        end
+        
+        if err then
+            return exported, err
+        end
+    end
+    return exported
+end
+
+local function formNum(num)
+    return tostring(math.round(num))
+end
+
+local function buyItems(item, count)
+    local exportedCount, err = advExport(item, "UP", count, function (exportedCount)
+        currentUser[1] = currentUser[1] - (item[5] * exportedCount)
+        configSave()
+    end)
+
+    if exportedCount < count then
+        rusWarn(screen, nil, nil, "Удалось купить только " .. formNum(exportedCount) .. " из " .. formNum(count) .. " предметов\nэто может быть связано с нехваткой места в инвентаре.\nденег было списанно за " .. formNum(exportedCount) .. " предметов.")
+    end
+end
+
+--[[
+function getStorageItemCount(item)
+    local count = 0
+    for _, stack in ipairs(lastMeItems) do
+        if currentNick then
+            break
+        end
+
+        if stack and stack.name == item[3] and stack.damage == item[1] then
+            count = count + (stack.size or 1)
+        end
+    end
+    return math.round(count)
+end
+]]
+
+function getStorageItemCount(item)
+    local detail = me.getItemDetail({id=item[3],dmg=item[1]})
+    if detail then
+        return math.round(detail.all().qty or 0)
+    else
+        return 0
+    end
+end
+
+function getUserItemCount(item)
+    local count = 0
+    for i = 1, pim.getInventorySize() do
+        local stack = pim.getStackInSlot(i)
+        if stack and stack.id == item[3] and stack.dmg == item[1] and (not item[4] or stack.nbt_hash == item.nbt_hash) then
+            count = count + (stack.qty or 1)
+        end
+    end
+    return math.round(count)
+end
+
+local function findItem(name, damage)
+    for categoryName, category in pairs(config.items.categories) do
+        for _, item in ipairs(category) do
+            if item[3] == name and item[1] == damage then
+                return item
+            end
+        end
+    end
+end
+
+local function craftRequestTh()
+    local counter = 0
+    while true do
+        for _, craft in ipairs(me.getCraftables()) do
+            local item = craft.getItemStack()
+            if item then
+                local tbl = findItem(item.name, item.damage)
+                if tbl then
+                    local inStorage = getStorageItemCount(tbl)
+                    local need = tbl[7] or defaultAutocraftCount
+                    if inStorage < need then
+                        craft.request(need - inStorage)
+                        craft.request(1)
+                    end
+                end
+            end
+    
+            if counter % 10 == 0 then
+                os.sleep()
+            end
+            counter = counter + 1
+        end
+    end
+end
+
+-------------------------------------------------- logo
+
+local mainLayout = uix.create(window, colors.black, uix.styles[2])
+mainLayout:createImage(1, 1, logoPath, true)
+
+function mainLayout:onSelect()
+    graphic.inputHistory = {}
+    clipboard.set()
+    if lastUser then
+        clipboard.set(lastUser)
+    end
+end
+
+--------------------------------------------------
+
+function downPlaneCreate(layout)
+    layout:createPlane(1, ry - 2, rx, 3, colors.gray[3])
+    local toSecondLayout = doButton(layout:createButton(2, ry - 1, 16, 1, colors.gray[4], colors.white, "← на главную", true))
+    function toSecondLayout:onClick()
+        tSelectLayout(secondLayout)
+    end
+    return toSecondLayout
+end
+
+function upPlaneCreate(layout, redraw)
+    layout:createPlane(1, 1, rx, 3, colors.gray[3])
+    layout:createText(2, 1, colors.cyan, "LUG Market")
+
+    local preUserBalance = layout:createText(2, 2, colors.white, "Ваш Баланс: ")
+    local userBalance = layout:createText(2 + unicode.len(preUserBalance.text), 2, colors.lime)
+    local userName = doButton(layout:createButton(0, 2, 0, 1, colors.gray[2], colors.gray[1], nil, true))
+
+    function userName:onClick()
+        tSelectLayout(accauntLayout)
+    end
+
+    function layout:onRedraw()
+        userName.text = tostring(currentNick)
+        userName.x = rx - unicode.len(userName.text) - 2
+        userName.sx = unicode.len(userName.text) + 2
+    
+        userBalance.text = "$" .. tostring(math.roundTo(currentUser[1]))
+
+        if redraw then
+            redraw()
+        end
+    end
+
+    return function (state)
+        preUserBalance.hidden = state
+        userBalance.hidden = state
+        userName.hidden = state
+
+        preUserBalance.disabled = state
+        userBalance.disabled = state
+        userName.disabled = state
+    end
+end
+
+function listCreate(layout, elementList, elementDraw)
+    local offsetList = 0
+    local upOffset = 5
+
+    local scrollBar = layout:createSeek(rx, 6, ry - 9, colors.gray[2], colors.gray[2], colors.red, 0, true, true)
+
+    local function drawElement(pos)
+        local i = (pos - upOffset) + offsetList
+        local element = elementList[i]
+        if element then
+            elementDraw(i, pos, element)
+        else
+            layout.window:fill(2, pos, rx - 3, 1, colors.black, 0, " ")
+        end
+    end
+
+    local elementPoses = {}
+    local elementIdxs = {}
+
+    local function remathList()
+        elementPoses = {}
+        elementIdxs = {}
+
+        for i = 1, #elementList do
+            local pos = (i + upOffset) - offsetList
+
+            if pos > upOffset and pos <= ry - 4 then
+                elementPoses[pos] = elementList[i]
+                elementIdxs[pos] = i
+            end
+        end
+    end
+
+    local function redrawList()
+        elementPoses = {}
+        elementIdxs = {}
+
+        for i = 1, #elementList do
+            local pos = (i + upOffset) - offsetList
+
+            if pos > upOffset and pos <= ry - 4 then
+                local element = elementList[i]
+                elementPoses[pos] = element
+                elementIdxs[pos] = element and i
+                if element then
+                    drawElement(pos)
+                end
+            end
+        end
+
+        local lastElementPos = (#elementList + upOffset) - offsetList
+        if lastElementPos > 0 then
+            layout.window:fill(1, lastElementPos + 1, rx - 1, ry - lastElementPos - 3, colors.black, 0, " ")
+        end
+    end
+
+    local function upList()
+        offsetList = offsetList - 1
+        if offsetList < 0 then offsetList = 0 return end
+        scrollBar.value = math.map(offsetList, 0, #elementList - 1, 0, 1)
+        scrollBar:draw()
+
+        window:copy(1, 6, rx - 1, ry - 10, 0, 1)
+        drawElement(6)
+        remathList()
+    end
+
+    local function downList()
+        offsetList = offsetList + 1
+        if offsetList >= #elementList then offsetList = #elementList - 1 return end
+        scrollBar.value = math.map(offsetList, 0, #elementList - 1, 0, 1)
+        scrollBar:draw()
+
+        window:copy(1, 7, rx - 1, ry - 10, 0, -1)
+        drawElement(ry - 4)
+        remathList()
+    end
+
+    function scrollBar:onSeek(value, oldValue, isTouch)
+        local oldOldValue = oldValue
+        if isTouch then
+            value = math.round(math.map(value, 0, 1, 0, #elementList - 1))
+            oldValue = math.round( math.map(oldValue, 0, 1, 0, #elementList - 1))
+        end
+
+        if value > oldValue then
+            downList()
+        elseif value < oldValue then
+            upList()
+        else
+            self.value = oldOldValue
+            self:draw()
+        end
+    end
+
+    local up = doButton(layout:createButton(rx, 5, 1, 1, colors.black, colors.orange, "^"))
+    function up:onClick()
+        upList()
+    end
+
+    local down = doButton(layout:createButton(rx, ry - 3, 1, 1, colors.black, colors.orange, "v"))
+    function down:onClick()
+        downList()
+    end
+
+
+
+    local manager = {}
+
+    function manager.getScr()
+        return offsetList
+    end
+
+    function manager.setScr(pos)
+        offsetList = pos
+    end
+
+    function manager.check(eventData)
+        if eventData and eventData[1] == "touch" and eventData[3] >= 2 and eventData[3] <= rx - 2 then
+            return elementIdxs[eventData[4]], elementPoses[eventData[4]]
+        end
+    end
+
+    return redrawList, scrollBar, manager
+end
+
+-------------------------------------------------- eula
+
+local eulaLayout = uix.create(window, colors.black, uix.styles[2])
+
+local toSecondLayout = downPlaneCreate(eulaLayout)
+
+local px, py = format.objectPos(screen, 16, 1, 0, 11)
+local toSecondLayout2 = doButton(eulaLayout:createButton(px, py, 16, 1, colors.gray[4], colors.white, "Принять ✓", true))
+function toSecondLayout2:onClick()
+    currentUser[5] = true
+    configSave()
+    tSelectLayout(secondLayout)
+end
+
+local function drawEula(screen, px, py, sx, bg, path)
+    local content = assert(fs.readFile(path))
+    local gpu = graphic.findGpu(screen)
+
+    if bg then
+        gpu.setBackground(bg)
+    end
+
+    local function set(x, y, text)
+        gpu.set(x + (px - 1), y + (py - 1), text)
+    end
+
+    local lines = {}
+    for _, raw_line in ipairs(parser.toLinesLn(content, sx)) do
+        local line = {size = 0}
+        local isColor = false
+        for _, part in ipairs(parser.split(unicode, raw_line, "|")) do
+            if isColor then
+                table.insert(line, tonumber(part))
+            else
+                table.insert(line, part)
+                line.size = line.size + unicode.len(part)
+            end
+            isColor = not isColor
+        end
+        table.insert(lines, line)
+    end
+
+    local color = 0xffffff
+    gpu.setForeground(color)
+    for y, line in ipairs(lines) do
+        local cursorX = 1
+        for _, part in ipairs(line) do
+            if type(part) == "number" then
+                gpu.setForeground(part)
+            else
+                set(math.round((sx / 2) - (line.size / 2)) + cursorX, y, part)
+                cursorX = cursorX + unicode.len(part)
+            end
+        end
+    end
+end
+
+local hide = upPlaneCreate(eulaLayout, function ()
+    drawEula(screen, 1, 5, rx, colors.black, paths.concat(appFolder, "eula.txt"))
+end)
+
+function eulaLayout:onSelect()
+    if currentUser[5] then
+        hide(false)
+
+        toSecondLayout2.disabled = true
+        toSecondLayout.disabled = false
+
+        toSecondLayout2.hidden = true
+        toSecondLayout.hidden = false
+    else
+        hide(true)
+
+        toSecondLayout2.disabled = false
+        toSecondLayout.disabled = true
+
+        toSecondLayout2.hidden = false
+        toSecondLayout.hidden = true
+    end
+end
+
+-------------------------------------------------- main control
+
+secondLayout = uix.create(window, colors.black, uix.styles[2])
+
+local px, py = format.objectPos(screen, 24, 3, 0, -2)
+local buyButton = doButton(secondLayout:createButton(px, py, 24, 3, colors.gray[3], colors.gray[1], "Купить предметы", true))
+
+local px, py = format.objectPos(screen, 24, 3, 0, 2)
+local sellButton = doButton(secondLayout:createButton(px, py, 24, 3, colors.gray[3], colors.gray[1], "Продать предметы", true))
+
+px, py = format.objectPos(screen, 16, 1, 16, 8)
+local eulaButton = doButton(secondLayout:createButton(px, py, 16, 1, colors.gray[3], colors.gray[1], "Соглашение", true))
+
+px, py = format.objectPos(screen, 16, 1, -16, 8)
+local usersButton = doButton(secondLayout:createButton(px, py, 16, 1, colors.gray[3], colors.gray[1], "Пользователи", true))
+
+px, py = format.objectPos(screen, 24, 3, 0, -6)
+local adminPanel = doButton(secondLayout:createButton(px, py, 24, 3, colors.gray[3], colors.gray[1], "Изменения списка", true))
+
+function buyButton:onClick()
+    tradeLayout.sellMode = false
+    tSelectLayout(tradeLayout)
+end
+
+function sellButton:onClick()
+    tradeLayout.sellMode = true
+    tSelectLayout(tradeLayout)
+end
+
+function eulaButton:onClick()
+    tSelectLayout(eulaLayout)
+end
+
+function usersButton:onClick()
+    tSelectLayout(usersLayout)
+end
+
+function adminPanel:onClick()
+    if currentUser[4] then
+        tradeLayout.sellMode = 2
+        tSelectLayout(tradeLayout)
+    end
+end
+
+function secondLayout:onSelect()
+    if currentUser[4] then
+        adminPanel.hidden = false
+        adminPanel.disabled = false
+    else
+        adminPanel.hidden = true
+        adminPanel.disabled = true
+    end
+end
+
+
+secondLayout:createText(3, ry - 2, colors.white, "По Вопросам Пишите Владельцу: IGeorgiyLool228 (игра) | dadya_kvantum (discord)")
+secondLayout:createText(7, ry - 1, colors.white, "Автор Програмного Обеспечения: LuaGame (игра) | dadya_kvantum (discord)")
+
+upPlaneCreate(secondLayout)
+
+-------------------------------------------------- accaunt control
+
+accauntLayout = uix.create(window, colors.black, uix.styles[2])
+accauntLayout:createPlane(2, 5, rx - 2, 5, colors.gray[4])
+
+local balanceShowSwitch = accauntLayout:createSwitch(3, 6)
+local transferAllowSwitch = accauntLayout:createSwitch(3, 8)
+
+accauntLayout:createText(10, 6, colors.white, "Разрешить другим пользователям просматривать ваш баланс")
+accauntLayout:createText(10, 8, colors.white, "Разрешить другим пользователям переводить средства на ваш аккаунт")
+
+function balanceShowSwitch:onSwitch()
+    currentUser[2] = self.state
+    configSave()
+end
+
+function transferAllowSwitch:onSwitch()
+    currentUser[3] = self.state
+    configSave()
+end
+
+function accauntLayout:onSelect()
+    balanceShowSwitch.state = currentUser[2]
+    transferAllowSwitch.state = currentUser[3]
+end
+
+downPlaneCreate(accauntLayout)
+upPlaneCreate(accauntLayout)
+
+-------------------------------------------------- users layout
+
+usersLayout = uix.create(window, colors.black, uix.styles[2])
+
+usersLayout:createPlane(1, 4, rx, 1, colors.blue)
+usersLayout:createText(3, 4, colors.orange, "Никнейм")
+usersLayout:createText(3 + 16, 4, colors.orange, "Баланс")
+usersLayout:createText(3 + 16 + 16, 4, colors.orange, "Переводы")
+
+local elementList = {}
+
+local redrawList, scrollBar, manager = listCreate(usersLayout, elementList, function (i, pos, element)
+    local color = i % 2 == 0 and colors.gray4a or colors.gray[4]
+    if element.nickname == currentNick then
+        color = colors.gray[2]
+    end
+
+    local smart = format.smartConcat()
+    smart.makeSize(rx - 3)
+    smart.add(2, element.nickname)
+    if element.user[2] then
+        smart.add(2 + 16, math.roundTo(element.user[1]))
+    else
+        smart.add(2 + 16, "Скрыт")
+    end
+    if element.user[3] then
+        smart.add(2 + 16 + 16, "Разрешены")
+    else
+        smart.add(2 + 16 + 16, "Запрешены")
+    end
+    usersLayout.window:set(2, pos, color, colors.white, smart.get())
+end)
+
+downPlaneCreate(usersLayout)
+
+local currentSearch
+
+local function usersMathList(search, noRedraw)
+    local function isSearch(text)
+        if not search or search == "" then
+            return true
+        end
+
+        text = text:lower()
+        search = search:lower()
+        return not not text:find(search)
+    end
+
+    for key, value in pairs(elementList) do
+        elementList[key] = nil
+    end
+    manager.setScr(0)
+    scrollBar.value = 0
+
+    local addedBalances = {}
+    local balances = {}
+    local maxBalance = 0
+    for nickname, user in pairs(config.users) do
+        if user[1] then
+            if not addedBalances[user[1]] then
+                table.insert(balances, user[1])
+                addedBalances[user[1]] = true
+                if user[1] > maxBalance then
+                    maxBalance = user[1]
+                end
+            end
+        else
+            table.insert(elementList, {nickname = nickname, user = user})
+        end
+    end
+    table.sort(balances, function (a, b)
+        return a < b
+    end)
+    for index, targetBalance in ipairs(balances) do
+        for nickname, user in pairs(config.users) do
+            if user[1] == targetBalance then
+                table.insert(elementList, 1, {nickname = nickname, user = user})
+            end
+        end
+    end
+
+    for i = #elementList, 1, -1 do
+        local obj = elementList[i]
+        if not isSearch(obj.nickname) then
+            table.remove(elementList, i)
+        end
+    end
+
+    if not noRedraw then
+        redrawList()
+        scrollBar:draw()
+    end
+end
+
+local searchInput = usersLayout:createInput(rx - 28, ry - 1, 24, colors.gray[4], colors.white, nil, nil, nil, 16, nil, nil, "Поиск...")
+function searchInput:onTextChanged(text)
+    if text == "" then
+        currentSearch = ""
+    else
+        currentSearch = escape_pattern(text)
+    end
+    usersMathList(currentSearch)
+end
+
+local searchClean = doButton(usersLayout:createButton(rx - 4, ry - 1, 3, 1, colors.gray[2], colors.orange, "X"))
+function searchClean:onClick()
+    currentSearch = ""
+    searchInput.read.setBuffer(currentSearch)
+    searchInput:draw()
+    usersMathList(currentSearch)
+end
+
+function usersLayout:onSelect()
+    currentSearch = ""
+    searchInput.read.setBuffer(currentSearch)
+    searchInput.read.setAllowUse(false)
+    searchInput.read.setOffset(0, 0)
+    usersMathList(currentSearch, true)
+end
+
+function usersLayout:onEvent(eventData)
+    local _, user = manager.check(eventData)
+    if user and user.nickname ~= currentNick then
+        if user.user[3] then
+            local input = rusInput(screen, "Перевести", nil, nil, "Сумма Для \"" .. user.nickname .. "\"", nil, nil, nil, nil, numbersWhiteListWithDot)
+            if input then
+                local num = numCheck(input)
+                if num then
+                    translateToUser(user, num)
+                end
+            end
+        else
+            rusWarn(screen, nil, nil, "Пользователь \"" .. user.nickname .. "\" запретил перевод сведств на свой аккаунт")
+        end
+        usersLayout:draw()
+    end
+end
+
+upPlaneCreate(usersLayout, redrawList)
+
+-------------------------------------------------- 
+
+
+tradeLayout = uix.create(window, colors.black, uix.styles[2])
+tradeLayout:createPlane(1, 4, rx, 1, colors.blue)
+
+local elementList = {}
+tradeLayout:createText(namePos , 4, colors.orange, "Имя")
+local buyLabel = tradeLayout:createText(pricePos , 4, colors.orange, "Цена")
+local sellLabel = tradeLayout:createText(sellPricePos, 4, colors.orange, "Цена Продажи")
+
+local buyLabel2 = tradeLayout:createText(pricePos2, 4, colors.orange, "Цена")
+local sellLabel2 = tradeLayout:createText(sellPricePos2, 4, colors.orange, "Цена Продажи")
+
+local invLabel = tradeLayout:createText(invPos, 4, colors.orange, "В инвентаре")
+local storageLabel = tradeLayout:createText(storagePos, 4, colors.orange, "В наличии")
+local nbtLabel = tradeLayout:createText(rx - 4, 4, colors.orange, "NBT")
+
+local redrawList, scrollBar, manager = listCreate(tradeLayout, elementList, function (i, pos, element)
+    local color = i % 2 == 0 and colors.gray4a or colors.gray[4]
+
+    local smart = format.smartConcat()
+    smart.makeSize(rx - 3)
+    smart.add(categoryPos - 1, element.category)
+    smart.add(namePos - 1, element.item[2])
+    if tradeLayout.sellMode == 2 then
+        smart.add(sellPricePos2 - 1, tostring(element.item[6]))
+        smart.add(pricePos2 - 1, tostring(element.item[5]))
+        smart.add(storagePos - 1, tostring(getStorageItemCount(element.item)))
+    elseif tradeLayout.sellMode then
+        smart.add(sellPricePos - 1, tostring(element.item[6]))
+        smart.add(invPos - 1, tostring(getUserItemCount(element.item)))
+    else
+        smart.add(pricePos - 1, tostring(element.item[5]))
+        smart.add(storagePos - 1, tostring(getStorageItemCount(element.item)))
+    end
+    tradeLayout.window:set(2, pos, color, colors.white, smart.get())
+
+    if tradeLayout.sellMode == 2 then
+        tradeLayout.window:set(rx - 4, pos, color, element.item[4] and colors.white or colors.gray[5], "⠶")
+    end
+end)
+
+upPlaneCreate(tradeLayout, redrawList)
+
+local lastCategory, currentSearch
+local lastCategoryI = 1
+local actives = {}
+local categoriesList 
+local categoriesFuncs
+
+local function reCategory()
+    categoriesList = {"Все"}
+    categoriesFuncs = {function ()
+        for i = 1, #categoriesList do
+            actives[i] = true
+        end
+        actives[1] = false
+
+        lastCategoryI = 1
+        lastCategory = nil
+        mathList(lastCategory, currentSearch)
+        categorySelector:draw()
+    end}
+
+    local ctg = {}
+    for name in pairs(config.items.categories) do
+        table.insert(ctg, name)
+    end
+    table.sort(ctg)
+
+    for i, name in ipairs(ctg) do
+        table.insert(categoriesList, name)
+        table.insert(categoriesFuncs, function ()
+            for i = 1, #categoriesList do
+                actives[i] = true
+            end
+            actives[i + 1] = false
+
+            lastCategoryI = i + 1
+            lastCategory = name
+            mathList(lastCategory, currentSearch)
+            categorySelector:draw()
+        end)
+    end
+
+    for k, v in pairs(actives) do
+        actives[k] = nil
+    end
+    for i = 1, #categoriesList do
+        actives[i] = true
+    end
+    actives[lastCategoryI] = false
+
+    if categorySelector then
+        categorySelector:destroy()
+    end
+    categorySelector = tradeLayout:createContext(categoryPos, 4, 11, 1, colors.orange, colors.black, " Категория↓", categoriesList, categoriesFuncs, actives)
+end
+
+function mathList(category, search, noRedraw)
+    local function isSearch(text)
+        if not search or search == "" then
+            return true
+        end
+
+        text = text:lower()
+        search = search:lower()
+        return not not text:find(search)
+    end
+    refreshLastMe()
+
+    for key, value in pairs(elementList) do
+        elementList[key] = nil
+    end
+    manager.setScr(0)
+    scrollBar.value = 0
+    if category then
+        for index, value in ipairs(config.items.categories[category]) do
+            table.insert(elementList, {item = value, category = category, index = index})
+        end
+    else
+        for _, category in ipairs(categoriesList) do
+            for index, value in ipairs(config.items.categories[category] or {}) do
+                table.insert(elementList, {item = value, category = category, index = index})
+            end
+        end
+    end
+    for i = #elementList, 1, -1 do
+        local obj = elementList[i]
+        local add = true
+        if tradeLayout.sellMode ~= 2 then
+            if tradeLayout.sellMode then
+                if not obj.item[6] then
+                    add = false
+                end
+            else
+                if not obj.item[5] then
+                    add = false
+                end
+            end
+        end
+        if not add or (not isSearch(obj.category) and not isSearch(obj.item[2])) then
+            table.remove(elementList, i)
+        end
+    end
+
+    if not noRedraw then
+        redrawList()
+        scrollBar:draw()
+    end
+end
+
+reCategory()
+
+downPlaneCreate(tradeLayout)
+
+--[[
+local refresh = tradeLayout:createButton(6, ry, 4, 1, colors.blue, colors.white, "@@", true)
+function refresh:onClick()
+    tradeLayout:draw()
+end
+]]
+
+local searchInput = tradeLayout:createInput(rx - 28, ry - 1, 24, colors.gray[4], colors.white, nil, nil, nil, 16, nil, nil, "Поиск...")
+function searchInput:onTextChanged(text)
+    if text == "" then
+        currentSearch = ""
+    else
+        currentSearch = escape_pattern(text)
+    end
+    mathList(lastCategory, currentSearch)
+end
+
+local searchClean = doButton(tradeLayout:createButton(rx - 4, ry - 1, 3, 1, colors.gray[2], colors.orange, "X"))
+function searchClean:onClick()
+    currentSearch = ""
+    searchInput.read.setBuffer(currentSearch)
+    searchInput:draw()
+    mathList(lastCategory, currentSearch)
+end
+
+local addCategory = doButton(tradeLayout:createButton(3, 2, 3, 1, colors.gray[2], colors.orange, "+", true))
+local delCategory = doButton(tradeLayout:createButton(7, 2, 3, 1, colors.gray[2], colors.orange, "-", true))
+local renCategory = doButton(tradeLayout:createButton(11, 2, 3, 1, colors.gray[2], colors.orange, "R", true))
+
+function addCategory:onClick()
+    local name = rusInput(screen, "Применить", nil, nil, "Введите имя категории")
+    if name then
+        config.data.items.categories[name] = {}
+        reCategory()
+        configSave()
+    end
+    tradeLayout:draw()
+end
+
+function delCategory:onClick()
+    if lastCategory and lastCategory ~= "All" then
+        if runYesno(screen, nil, nil, "Вы действительно хотите удалить категорию \"" .. (lastCategory or "unknown") .. "\" со всеми предметами?") then
+            config.data.items.categories[lastCategory] = nil
+            lastCategory, currentSearch, lastCategoryI = nil, "", 1
+            reCategory()
+            configSave()
+            mathList(lastCategory, currentSearch)
+        end
+    else
+        rusWarn(screen, nil, nil, "Сначала выберите категорию")
+    end
+    tradeLayout:draw()
+end
+
+function renCategory:onClick()
+    if lastCategory and lastCategory ~= "All" then
+        local newName = rusInput(screen, "Переименовать", nil, nil, "Имя категории", nil, nil, tostring(lastCategory))
+        if newName then
+            local currentCategory = config.data.items.categories[lastCategory]
+            config.data.items.categories[lastCategory] = nil
+            config.data.items.categories[newName] = currentCategory
+            lastCategory = newName
+            reCategory()
+            configSave()
+            mathList(lastCategory, currentSearch)
+        end
+    else
+        rusWarn(screen, nil, nil, "Сначала выберите категорию")
+    end
+    tradeLayout:draw()
+end
+
+
+local addItem = doButton(tradeLayout:createButton(19, 2, 3, 1, colors.gray[2], colors.red, "+", true))
+function addItem:onClick()
+    if lastCategory and lastCategory ~= "All" then
+        local pimitem = component.pim.getStackInSlot(1)
+        if pimitem then
+            local name = nRusInput(screen, "Добавить", nil, nil, "Введите имя", nil, nil, tostring(pimitem.display_name), nil, pimitem)
+            if name then
+                local item = {
+                    pimitem.dmg,
+                    name,
+                    pimitem.id,
+                    pimitem.nbt_hash
+                }
+                table.insert(config.data.items.categories[lastCategory], item)
+                configSave()
+                mathList(lastCategory, currentSearch)
+            end
+        else
+            rusWarn(screen, nil, nil, "Сначала возмите предмет в первый слот хотбара")
+        end
+    else
+        rusWarn(screen, nil, nil, "Сначала выберите категорию")
+    end
+    tradeLayout:draw()
+end
+
+function tradeLayout:onSelect()
+    local dis = tradeLayout.sellMode ~= 2
+
+    addCategory.hidden = dis
+    addCategory.disabled = dis
+
+    delCategory.hidden = dis
+    delCategory.disabled = dis
+
+    renCategory.hidden = dis
+    renCategory.disabled = dis
+
+    addItem.hidden = dis
+    addItem.disabled = dis
+
+    if not dis then
+        local placePos = rx - unicode.len(currentNick) - 7
+        addItem.x = placePos - 13
+        addCategory.x = placePos - 8
+        delCategory.x = placePos - 4
+        renCategory.x = placePos
+    end
+
+    buyLabel2.hidden = true
+    sellLabel2.hidden = true
+    nbtLabel.hidden = true
+    if tradeLayout.sellMode == 2 then
+        buyLabel2.hidden = false
+        sellLabel2.hidden = false
+        nbtLabel.hidden = false
+
+        sellLabel.hidden = true
+        buyLabel.hidden = true
+
+        invLabel.hidden = true
+        storageLabel.hidden = false
+    elseif tradeLayout.sellMode then
+        sellLabel.hidden = false
+        buyLabel.hidden = true
+
+        invLabel.hidden = false
+        storageLabel.hidden = true
+    else
+        sellLabel.hidden = true
+        buyLabel.hidden = false
+
+        invLabel.hidden = true
+        storageLabel.hidden = false
+    end
+
+    lastCategory, currentSearch, lastCategoryI = nil, "", 1
+    reCategory()
+    searchInput.read.setBuffer(currentSearch)
+    searchInput.read.setAllowUse(false)
+    searchInput.read.setOffset(0, 0)
+    mathList(lastCategory, currentSearch, true)
+end
+
+function lugContext(layout, screen, posX, posY, strs, active)
+    layout.controlLock = true
+    local th = thread.create(gui.contextAuto, screen, posX, posY, strs, active)
+    th:resume()
+    local out = {}
+    while not canStopWhile() do
+        if th:status() == "dead" then
+            local lout = {th:decode()}
+            if lout[1] then
+                out = lout
+                break
+            else
+                assert(table.unpack(out))
+            end
+        end
+        os.sleep(0.1)
+    end
+    th:kill()
+    layout.controlLock = false
+    return table.unpack(out, 2)
+end
+
+
+
+function tradeLayout:onEvent(eventData)
+    local _, oitem = manager.check(eventData)
+    if oitem then
+        local cfgitem = config.data.items.categories[oitem.category][oitem.index]
+        local item = oitem.item
+        if tradeLayout.sellMode == 2 then
+            if eventData[3] == rx - 4 then
+                cfgitem[4] = not cfgitem[4]
+                if cfgitem[4] == false then oitem.cfgitem = nil end
+                configSave()
+            else
+                local _, num = lugContext(tradeLayout, screen, eventData[3], eventData[4], {"Удалить предмет", "Изменить цену покупки", "Удалить цену покупки", "Изменить цены продажи", "Удалить цену продажи", "Изменить имя", "Установить количество автокрафта"})
+                if num then
+                    if num == 1 then
+                        if runYesno(screen, nil, nil, "Вы действительно хотите удалить \"" .. (cfgitem[2] or "unknown") .. "\"?") then
+                            table.remove(config.data.items.categories[oitem.category], oitem.index)
+                        end
+                    elseif num == 2 then
+                        local count = nRusInput(screen, "Изменить", nil, nil, "Цена для покупки предмета", nil, nil, cfgitem[5] and tostring(cfgitem[5]), nil, item, nil, numbersWhiteListWithDot)
+                        if count then
+                            local num = numCheck(count)
+                            if num then
+                                cfgitem[5] = num
+                            end
+                        end
+                    elseif num == 3 then
+                        cfgitem[5] = nil
+                    elseif num == 4 then
+                        local count = nRusInput(screen, "Изменить", nil, nil, "Цена продажи предмета", nil, nil, cfgitem[6] and tostring(cfgitem[6]), nil, item, nil, numbersWhiteListWithDot)
+                        if count then
+                            local num = numCheck(count)
+                            if num then
+                                cfgitem[6] = num
+                            end
+                        end
+                    elseif num == 5 then
+                        cfgitem[6] = nil
+                    elseif num == 6 then
+                        local name = nRusInput(screen, "Изменить", nil, nil, "Имя", nil, nil, tostring(cfgitem[2]), nil, item)
+                        if name then
+                            cfgitem[2] = name
+                        end
+                    elseif num == 7 then
+                        local count = nRusInput(screen, "Установить", nil, nil, "Сколько автокрафтить \"" .. item[2] .. "\"?", nil, nil, tostring(cfgitem[7] or defaultAutocraftCount), nil, item, nil, numbersWhiteList)
+                        if count then
+                            local num = numCheck(count, true)
+                            if num then
+                                cfgitem[7] = num
+                            end
+                        end
+                    end
+                    configSave()
+                    mathList(lastCategory, currentSearch)
+                end
+            end
+        elseif tradeLayout.sellMode then
+            local count = nRusInput(screen, "Продать", nil, nil, "Сколько продать \"" .. item[2] .. "\"?", nil, nil, nil, nil, item, true, numbersWhiteList)
+            if count then
+                local num = numCheck(count, true)
+                if num then
+                    if num > getUserItemCount(item) then
+                        rusWarn(screen, nil, nil, "В инвентаре недостаточно предметов этого типа")
+                    else
+                        splash(screen, nil, nil, "Процесс продажи...")
+                        sellItems(item, num)
+                        refreshLastMe()
+                    end
+                end
+            end
+        else
+            local count = nRusInput(screen, "Купить", nil, nil, "Сколько купить \"" .. item[2] .. "\"?", nil, nil, nil, nil, item, false, numbersWhiteList)
+            if count then
+                local num = numCheck(count, true)
+                if num then
+                    if num * item[5] > currentUser[1] then
+                        rusWarn(screen, nil, nil, "Недостаточно средств для совершения покупки")
+                    elseif num <= getStorageItemCount(item) then
+                        splash(screen, nil, nil, "Процесс покупки...")
+                        refreshLastMe()
+                        buyItems(item, num)
+                        refreshLastMe()
+                    else
+                        rusWarn(screen, nil, nil, "На складе недостаточно предметов этого типа")
+                    end
+                end
+            end
+        end
+        tradeLayout:draw()
+    end
+end
+
+--------------------------------------------------
+
+function canStopWhile()
+    return pim.getInventoryName() ~= currentNick
+end
+
+selectLayout(mainLayout)
+
+local craftTh = thread.create(craftRequestTh)
+thread.create(function ()
+    while true do
+        if currentNick then
+            craftTh:suspend()
+        else
+            craftTh:resume()
+        end
+
+        os.sleep(1)
+    end
+end):resume()
+
+thread.create(function ()
+    while true do
+        if not currentNick then
+            _G.syncCheck()
+            _G.updateCheck()
+        end
+        os.sleep(2)
+    end
+end):resume()
+
+while true do
+    local eventData = {event.pull(0.1)}
+    selectedLayout:uploadEvent(eventData)
+
+    local inventoryName = pim.getInventoryName()
+    if inventoryName ~= "pim" then
+        if inventoryName ~= currentNick then
+            currentNick = inventoryName
+            currentUser = regUser(currentNick)
+            lastUser = currentUser
+            _G.lugMarketUser = currentNick
+            if currentUser[5] then
+                selectLayout(secondLayout)
+            else
+                selectLayout(eulaLayout)
+            end
+        end
+    elseif selectedLayout ~= mainLayout then
+        _G.lugMarketUser = nil
+        currentUser = nil
+        currentNick = nil
+        tradeLayout.controlLock = false
+        if cache.data.clipboard then
+            for k, v in pairs(cache.data.clipboard) do
+                cache.data.clipboard[k] = nil
+            end
+        end
+        selectLayout(mainLayout)
+    end
+endLUGMarket.app/palette.plt 243 {
+    0xffffff,
+    0xc5c5c5,
+    0x858585,
+    0x545454,
+    0x343434,
+    0x1b1b1b,
+    0x000000,
+    0xba0b0b,
+    0x1cba0b,
+    0x1e3de8,
+    0xdbd904,
+    0x01b799,
+    0xff00ff,
+    0x4C99B2,
+    0xdb9204,
+    0x434343
+}files.tbl 205 {"shell.lua","LUGMarket.app/default.dat","LUGMarket.app/eula.txt","LUGMarket.app/exit.lua","LUGMarket.app/icon.t2p","LUGMarket.app/logo.t2p","LUGMarket.app/main.lua","LUGMarket.app/palette.plt",version=28}shell.lua 4867 local event = require("event")
+local component = require("component")
+local liked = require("liked")
+local apps = require("apps")
+local paths = require("paths")
+local serialization = require("serialization")
+local registry = require("registry")
+local system = require("system")
+local graphic = require("graphic")
+local computer = require("computer")
+local internet = require("internet")
+internet.settings.timeout = 10
+
+local screen = ...
+
+if _G.lugMarketScreen and _G.lugMarketScreen ~= screen then
+    event.wait()
+    return
+end
+
+_G.lugMarketScreen = screen
+_G.lugmarketPort = 4561
+_G.lugmarketMsg = "lugmarket_msg"
+
+_G.host = "http://176.53.161.98:4045"
+_G.updateHost = _G.host .. "/e2d8fefb-dd72-4c9a-be85-6db41a92b3db/"
+_G.postUrl = _G.host .. "/d86a22ef-ad92-45b5-bd89-9d6c59e0c63f/"
+_G.updateFile = _G.updateHost .. "files.tbl"
+_G.dbFile = _G.updateHost .. "data.dat"
+
+-------------------------------------------------------- system settings
+
+graphic.setDepth(screen, 4)
+registry.shadowMode = "full"
+registry.shadowType = "advanced"
+registry.bufferType = "hardware"
+--registry.bufferType = "none"
+liked.applyBufferType()
+
+-------------------------------------------------------- modem check & wakeup
+
+local appFolder = paths.concat(paths.path(system.getSelfScriptPath()), "LUGMarket.app")
+local defaultConfigPath = paths.concat(appFolder, "default.dat")
+local defaultConfig = serialization.load(defaultConfigPath)
+local config = registry.new("lugmarket.dat", defaultConfig)
+_G.lugmarketConfig = config
+
+-------------------------------------------------------- modem check & wakeup
+
+local modem = component.modem or error("connect the wired modem!")
+if modem.isWireless() then
+    error("wireless modem is not support")
+end
+
+modem.close()
+modem.open(_G.lugmarketPort)
+modem.setWakeMessage(_G.lugmarketMsg, true)
+
+local function sendToServer()
+    local card = internet.cardProxy()
+    if card then
+        card.request(_G.postUrl, serialization.serialize(config.data))
+    end
+end
+
+function _G.lugmarketSend()
+    modem.broadcast(_G.lugmarketPort, _G.lugmarketMsg, config.data.version, serialization.serialize(config.data))
+end
+
+local function getTable(url)
+    if internet.card() then
+        local files = internet.get(url)
+        if files then
+            files = serialization.unserialize(files)
+            if files then
+                return files
+            end
+        end
+    end
+end
+
+function _G.updateCheck()
+    local files = getTable(_G.updateFile)
+    if files then
+        if not registry.lugver or registry.lugver ~= files.version then
+            --local downloads = {}
+            for _, file in ipairs(files) do
+                --table.insert(downloads, {_G.updateHost .. file, paths.concat("/system/bin", file)})
+                internet.download(_G.updateHost .. file, paths.concat("/system/bin", file))
+            end
+            --internet.downloads(downloads)
+            registry.lugver = files.version
+            computer.shutdown("fast")
+        end
+    end
+end
+
+function _G.syncCheck()
+    local files = getTable(_G.dbFile)
+    if files then
+        if files.version > config.data.version then
+            config.data = files
+            config.save()
+        elseif files.version < config.data.version then
+            sendToServer()
+        end
+    end
+end
+
+event.timer(3, function ()
+    _G.lugmarketSend()
+end, math.huge)
+
+event.listen("modem_message", function (_, uuid, sender, port, dist, title, version, cfg)
+    if title == _G.lugmarketMsg then
+        if version > config.data.version then
+            config.data = serialization.unserialize(cfg)
+            config.save()
+        end
+    end
+end)
+
+-------------------------------------------------------- event hook
+
+event.hyperHook(function (...)
+    local eventData = {...}
+    if eventData[1] == "key_down" or eventData[1] == "key_up" then
+        if _G.lugMarketUser and eventData[5] ~= _G.lugMarketUser then
+            eventData[1] = "skipped_" .. eventData[1]
+        end
+    elseif eventData[1] == "touch" or eventData[1] == "scroll" or eventData[1] == "drag" or eventData[1] == "drop" then
+        if _G.lugMarketUser and eventData[6] ~= _G.lugMarketUser then
+            eventData[1] = "skipped_" .. eventData[1]
+        end
+    end
+    return table.unpack(eventData)
+end)
+
+-------------------------------------------------------- redstone wakeup
+
+for addrs in component.list("redstone", true) do
+    component.invoke(addrs, "setWakeThreshold", 1)
+end
+
+-------------------------------------------------------- running market shell
+
+_G.syncCheck()
+_G.updateCheck()
+
+while true do
+    apps.execute("LUGMarket", screen)
+    for i = 1, 3 do
+        computer.beep(300, 0.5)
+        os.sleep(0.1)
+    end
+end
