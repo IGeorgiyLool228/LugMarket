@@ -211,7 +211,7 @@ local function log(data, name)
     end
 
     local paths = filesystem.list("/logs/")
-    for oldPath = a, paths.n do 
+    for oldPath = 0, paths.n do 
         local checkPath = "/logs/" .. paths[oldPath]
 
         if not days[paths[oldPath]] and filesystem.isDirectory(checkPath) and checkPath:match("%d+.%d+.%d+.log") then
@@ -1441,8 +1441,8 @@ function login(name)
 
         if active then
             clear()
-            setColorText(18, 2, "   [0x000000]◕⩊◕⠂[0x1cb1e3]L U G M A R K E T[0x000000]⠐◕⩊◕", color.background)
-            setColorText(17, 5, "      [0xffffff]Встаньте на [0x14e162]PIM", color.background)
+            setColorText(18, 2, " [0x000000]◕⩊◕⠂[0x1cb1e3]L U G M A R K E T[0x000000]⠐◕⩊◕", color.background)
+            setColorText(17, 5, "       [0xffffff]Встаньте на [0x14e162]PIM", color.background)
             discord()
             drawPim()
         end
