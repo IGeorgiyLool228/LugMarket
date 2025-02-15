@@ -53,7 +53,7 @@ local autonomous = false
 
 local color = {
     pattern = "%[0x(%x%x%x%x%x%x)]",
-    background = 0x808080,
+    background = 0x3b3b3b,
     pim = 0x5e5e5e,
 
     gray = 0x404040,
@@ -1441,8 +1441,8 @@ function login(name)
 
         if active then
             clear()
-            setColorText(18, 2, "[0xffffff]██▓▒­░⡷⠂[0x1cb1e3]LUGMARKET[0xffffff]⠐⢾░▒▓██ ", color.background)
-            setColorText(17, 5, "[0xffffff]Встаньте на [0x46c8e3]PIM", color.background)
+            setColorText(18, 2, " [0xffffff]██▓▒­░⡷⠂[0x1cb1e3]LUGMARKET[0xffffff]⠐⢾░▒▓██ ", color.background)
+            setColorText(17, 5, "          [0xffffff]Встаньте на [0x14e162]PIM", color.background)
             discord()
             drawPim()
         end
