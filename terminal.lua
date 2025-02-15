@@ -211,7 +211,7 @@ local function log(data, name)
     end
 
     local paths = filesystem.list("/logs/")
-    for oldPath = 0, paths.n do 
+    for oldPath = nil, paths.n do 
         local checkPath = "/logs/" .. paths[oldPath]
 
         if not days[paths[oldPath]] and filesystem.isDirectory(checkPath) and checkPath:match("%d+.%d+.%d+.log") then
